@@ -11,8 +11,10 @@
 
 //Micke egna bibliotek
 #include "MickeDallasTemperature.h"
+#include "MickesLedControl.h"
 #include "RS485WithErrChk.h"
 #include "SendReciveRemoteTemp.h"
+#include "TemperatureDisplay.h"
 /*
 * BastuEnhet.ino
 *
@@ -22,10 +24,14 @@
 
 //Pin nummer konfigurationen som enheterna är
 //inkopplade på
-//#define LEDCONTROL_DATA_PIN 12
-//#define LEDCONTROL_CLOCK_PIN 11
-//#define LEDCONTROL_CS_PIN 10
+#define LEDCONTROL_DATA_PIN 9
+#define LEDCONTROL_CLOCK_PIN 8
+#define LEDCONTROL_CS_PIN 7
 
+//Antal inkopplade MAX 7219 ledcontrol enheter
+#define NUM_OF_LEDCONTROLS 2
+
+//Styr Pinnen för Dallas sensorerna
 #define ONE_WIRE_CONTROL_PIN 4
 
 #define SSerialRX        10  //Serial Receive pin
@@ -46,6 +52,15 @@ MickeDallasTemperature mDallasTemp(&oWire);
 
 RS485WithErrChk rs485 = RS485WithErrChk(SSerialRX, SSerialTX, SSerialTxControl);
 SendReciveRemoteTemp sendRecvRTemp(&rs485, NUM_OF_REMOTE_SENSORS, 5000);
+
+//Skapa det globala Micke Led control objektet
+MickesLedControl MickeLC(LEDCONTROL_DATA_PIN, LEDCONTROL_CLOCK_PIN,
+	LEDCONTROL_CS_PIN, NUM_OF_LEDCONTROLS);
+
+//Skapa led display objekt.
+TemperatureDisplay topDisplay = TemperatureDisplay(0, 0, 4, MickeLC);
+TemperatureDisplay midDisplay = TemperatureDisplay(1, 0, 0, MickeLC);
+TemperatureDisplay lowDisplay = TemperatureDisplay(2, 1, 0, MickeLC);
 
 //Behövs för att köra Freqcounter
 //interupten nedan
@@ -68,12 +83,16 @@ void isr()
 void setup()
 {
 	Serial.begin(9600);
-	/* add setup code here, setup code runs once when the processor starts */
-	Serial.println("Init Sensors..");
-
+	//Starta upp Dallas sensorerna
+	Serial.println("Init Dallas Sensors..");
 	mDallasTemp.InitSensors();
 
 	rs485.InitRs485ComPort(RS485_SERIAL_COM_SPEED);
+
+	//Starta upp led displayerna;
+	Serial.println("Init LED Displays..");
+	MickeLC.initLedDisplay(0, 5);
+	MickeLC.initLedDisplay(1, 5);
 }
 
 void loop()
@@ -82,13 +101,24 @@ void loop()
 	float bastuTemp;
 	float uteTemp;
 
+	float vvTempTop;
+	float vvTempMid;
+	float vvTempLow;
+
 	//Hämta temperatur från FreqCountern
 	sjoTemp = GetTempFromFreqCounter(READ_FREQVENCY);
 
 	//Hämta  temperatur från Dallas sensorn  
+	//Läs av bastu och ute temperatur
 	bastuTemp = mDallasTemp.getSensorTempC(0);
 	uteTemp = mDallasTemp.getSensorTempC(1);
 
+	//Läs av givarna i Varmatten beredaren.
+	vvTempTop = mDallasTemp.getSensorTempC(2);
+	vvTempMid = mDallasTemp.getSensorTempC(3);
+	vvTempLow = mDallasTemp.getSensorTempC(4);
+
+	//Skriv ut temperatur värdena i com fönstret
 	Serial.print("Sjo Temperatur = ");
 	Serial.println(sjoTemp);
 	Serial.print("Bastu Temperatur = ");
@@ -96,13 +126,28 @@ void loop()
 	Serial.print("Ute Temperatur = ");
 	Serial.println(uteTemp);
 
+	Serial.print("VV Temperatur i Toppen = ");
+	Serial.println(vvTempTop);
+	Serial.print("VV Temperatur i Mitten = ");
+	Serial.println(vvTempMid);
+	Serial.print("VV Temperatur i Botten = ");
+	Serial.println(vvTempLow);
+
+	//Sätt de temperaturer som skall sändas iväg
 	sendRecvRTemp.setTemperatureToSend(0, sjoTemp);
 	sendRecvRTemp.setTemperatureToSend(2, bastuTemp);
 	sendRecvRTemp.setTemperatureToSend(1, uteTemp);
 
+	//Kolla om det kommit in en request.
 	String sTemp;
 	sTemp = sendRecvRTemp.checkForRemoteData();
+	Serial.print("Request data recived = ");
+	Serial.println(sTemp);
 
+	//Skriv ut temperatur värdena från VVBeredaren till Displayerna.
+	topDisplay.showTemperature(vvTempTop);
+	midDisplay.showTemperature(vvTempMid);
+	lowDisplay.showTemperature(vvTempLow);
 }
 
 //Hämta temperatur från freqCouner

@@ -86,12 +86,8 @@ extern "C" void __cxa_pure_virtual() {;}
 #include <Bastuenhet6.ino>
 #include <MickeDallasTemperature.cpp>
 #include <MickeDallasTemperature.h>
-#include <MickesLedControl.cpp>
-#include <MickesLedControl.h>
 #include <RS485WithErrChk.cpp>
 #include <RS485WithErrChk.h>
 #include <SendReciveRemoteTemp.cpp>
 #include <SendReciveRemoteTemp.h>
-#include <TemperatureDisplay.cpp>
-#include <TemperatureDisplay.h>
 #endif
