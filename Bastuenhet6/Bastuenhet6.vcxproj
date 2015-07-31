@@ -74,7 +74,19 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="MickeDallasTemperature.h" />
+    <ClInclude Include="MickesLedControl.h" />
+    <ClInclude Include="RS485WithErrChk.h" />
+    <ClInclude Include="SendReciveRemoteTemp.h" />
+    <ClInclude Include="TemperatureDisplay.h" />
     <ClInclude Include="Visual Micro\.Bastuenhet6.vsarduino.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="MickeDallasTemperature.cpp" />
+    <ClCompile Include="MickesLedControl.cpp" />
+    <ClCompile Include="RS485WithErrChk.cpp" />
+    <ClCompile Include="SendReciveRemoteTemp.cpp" />
+    <ClCompile Include="TemperatureDisplay.cpp" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
