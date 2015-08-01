@@ -44,6 +44,8 @@
 //Definera samplings hastighet som data från
 //frekvens ska hämtas
 #define  READ_FREQVENCY 1000
+//Definerar hur ofta det lägsta värdet från sjö temperaturen ska läsas av.
+#define FREQTEMP_LOW_VALUE_UPDATE_INTERVALL 15000
 
 //Skapa de globala objekten
 
@@ -61,6 +63,10 @@ MickesLedControl MickeLC(LEDCONTROL_DATA_PIN, LEDCONTROL_CLOCK_PIN,
 TemperatureDisplay topDisplay = TemperatureDisplay(0, 0, 4, MickeLC);
 TemperatureDisplay midDisplay = TemperatureDisplay(1, 0, 0, MickeLC);
 TemperatureDisplay lowDisplay = TemperatureDisplay(2, 1, 0, MickeLC);
+
+float lowestfreqTemp = 0;
+float currentFreqTemp = 0;
+long lastFreqTempUpdate = 0;
 
 //Behövs för att köra Freqcounter
 //interupten nedan
@@ -106,7 +112,7 @@ void loop()
 	float vvTempLow;
 
 	//Hämta temperatur från FreqCountern
-	sjoTemp = GetTempFromFreqCounter(READ_FREQVENCY);
+	sjoTemp = GetLowestTempFromFreqCounter();
 
 	//Hämta  temperatur från Dallas sensorn  
 	//Läs av bastu och ute temperatur
@@ -125,6 +131,7 @@ void loop()
 	Serial.println(bastuTemp);
 	Serial.print("Ute Temperatur = ");
 	Serial.println(uteTemp);
+	Serial.println();
 
 	Serial.print("VV Temperatur i Toppen = ");
 	Serial.println(vvTempTop);
@@ -132,6 +139,7 @@ void loop()
 	Serial.println(vvTempMid);
 	Serial.print("VV Temperatur i Botten = ");
 	Serial.println(vvTempLow);
+	Serial.println();
 
 	//Sätt de temperaturer som skall sändas iväg
 	sendRecvRTemp.setTemperatureToSend(0, sjoTemp);
@@ -148,6 +156,47 @@ void loop()
 	topDisplay.showTemperature(vvTempTop);
 	midDisplay.showTemperature(vvTempMid);
 	lowDisplay.showTemperature(vvTempLow);
+}
+
+float GetLowestTempFromFreqCounter()
+{
+	float tempFromFreqCount;
+	//Kolla om den körs för första gången i sådant fall hämta och returnera
+	//en temperatur på direktent
+	if (lastFreqTempUpdate == 0) {
+		//Updatera timern
+		Serial.println("Setting freqTempStartValue");
+		lastFreqTempUpdate = millis();
+		tempFromFreqCount = GetTempFromFreqCounter(READ_FREQVENCY);
+		lowestfreqTemp = tempFromFreqCount;
+		return lowestfreqTemp;
+	}
+
+	if (lastFreqTempUpdate + FREQTEMP_LOW_VALUE_UPDATE_INTERVALL > millis()) {
+		Serial.print("Tar det sist updaterade lagsta FreqTemp vardet = ");
+		Serial.println(lowestfreqTemp);
+		//Tröskel värdet för updaterings intervallet har INTE uppnåtts,
+		//så lägsta freqCount temperaturen ska bara läsas av
+		tempFromFreqCount = GetTempFromFreqCounter(READ_FREQVENCY);
+
+		Serial.print("Senaste hamtade Sjotemp = ");
+		Serial.println(tempFromFreqCount);
+		//Kolla om den senast hämtade temperaturen från FreqCounter är
+		//Lägre än den hittils lägsta temperaturen.
+		if (tempFromFreqCount < lowestfreqTemp) {
+			//om det är lägst sparas undan.
+			lowestfreqTemp = tempFromFreqCount;
+		}
+	}
+	else {
+		//Tiden har gått över och nytt lägsta värde skall sättas
+		Serial.print("Updaterar sjoTempVardet med det senaste lagsta = ");
+		Serial.println(lowestfreqTemp);
+		currentFreqTemp = lowestfreqTemp;
+		lastFreqTempUpdate = millis();
+	}
+	Serial.println();
+	return currentFreqTemp;
 }
 
 //Hämta temperatur från freqCouner
