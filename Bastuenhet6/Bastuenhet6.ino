@@ -4,6 +4,11 @@
  Author:	Micke
 */
 
+/* -Change Log
+6.0 Implemented readings for more Dallas sensors and added LED Display support for use with 
+    Local Water heater Temperature readings.
+*/
+
 #include <LedControl.h>
 #include <SoftwareSerial.h>
 #include <DallasTemperature.h>
@@ -15,12 +20,7 @@
 #include "RS485WithErrChk.h"
 #include "SendReciveRemoteTemp.h"
 #include "TemperatureDisplay.h"
-/*
-* BastuEnhet.ino
-*
-* Created: 5/15/2015 4:13:04 PM
-* Author: Micke
-*/
+
 
 //Pin nummer konfigurationen som enheterna är
 //inkopplade på
